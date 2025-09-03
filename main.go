@@ -14,4 +14,11 @@
 
 package main
 
-func main() {}
+import (
+	"github.com/palantir/safe-logging-go/safelogging"
+	"golang.org/x/tools/go/analysis/singlechecker"
+)
+
+func main() {
+	singlechecker.Main(safelogging.NewAnalyzer().Analyzer())
+}
