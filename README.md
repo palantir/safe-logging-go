@@ -45,6 +45,10 @@ useful in instances where there are types or struct fields that are known to be 
 does not have the ability to modify the code to add the struct tags or comment-based annotations necessary to mark them
 directly.
 
+The check can also be configured to verify that the argument passed to a function at a particular index is a
+compile-time constant by specifying the function and parameter index in the "ConstMessageLoggingFunctions"
+configuration.
+
 When run as a standalone program, the configuration is specified as JSON and provided using a flag.
 
 The configuration is defined in the [safelogging/config.go] file as follows:
@@ -55,22 +59,28 @@ type Config struct {
 	// The safety value in this map can make a type less safe, but not more safe (for example, if a struct type is
 	// determined to be unsafe based on its fields, marking it as safe using this configuration will not make it safe).
 	// The values in this map are applied on top of the default.
-	TypeLogSafety *map[string]LogSafetyType `json:"typeLogSafety,omitempty" yaml:"type-log-safety,omitempty"`
+	TypeLogSafety *map[string]LogSafetyType `json:"typeLogSafety,omitempty" mapstructure:"type-log-safety,omitempty"`
 
-    // If true, omits the default TypeLogSafety values and uses only those specified in the TypeLogSafety map.
-    TypeLogSafetyOmitDefaults bool `json:"typeLogSafetyDisableDefaults,omitempty" yaml:"type-log-safety-disable-defaults,omitempty"`
+	// If true, omits the default TypeLogSafety values and uses only those specified in the TypeLogSafety map.
+	TypeLogSafetyOmitDefaults bool `json:"typeLogSafetyDisableDefaults,omitempty" mapstructure:"type-log-safety-disable-defaults,omitempty"`
 
 	// StructFieldLogSafety is a map from fully qualified struct field identifier to the log safety for that field. The
 	// type safety for a struct is the "least safe" of all of its types/fields (recursively) and any markings or safety
 	// configured for the struct itself.
-	StructFieldLogSafety *map[string]LogSafetyType `json:"structFieldLogSafety,omitempty" yaml:"struct-field-log-safety,omitempty"`
-	
+	StructFieldLogSafety *map[string]LogSafetyType `json:"structFieldLogSafety,omitempty" mapstructure:"struct-field-log-safety,omitempty"`
+
 	// If true, omits the default StructFieldLogSafety values and uses only those specified in the StructFieldLogSafety map.
-    StructFieldLogSafetyOmitDefaults bool `json:"structFieldLogSafetyDisableDefaults,omitempty" yaml:"struct-field-log-safety-disable-defaults,omitempty"`
+	StructFieldLogSafetyOmitDefaults bool `json:"structFieldLogSafetyDisableDefaults,omitempty" mapstructure:"struct-field-log-safety-disable-defaults,omitempty"`
+
+	// ConstMessageLoggingFunctions is a list of functions are checked to ensure that the parameter at a specified index
+	// is a constant string. Currently, the check only supports checking one parameter per function -- if the provided
+	// slice contains the same function multiple times, the last entry will take precedence. This configuration can add
+	// to the default set of functions, but cannot override them.
+	ConstMessageLoggingFunctions []ConstMessageLoggingFunction `json:"constMessageLoggingFunctions,omitempty" mapstructure:"const-message-logging-functions,omitempty"`
 }
 ```
 
-If configuration is not provided, then the following defaults are used:
+If configuration is not provided, then the following defaults are used for type safety:
 
 ```
 func builtinTypeSafetyMap() map[string]LogSafetyType {
@@ -94,6 +104,17 @@ func builtinStructFieldSafetyMap() map[string]LogSafetyType {
 		"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient.ClientConfig.APIToken": LogSafetyTypeDoNotLog,
 	}
 }
+```
+
+The first parameter (the one at index 0) for the following functions are always checked to ensure that they are
+compile-time constants (configuration can be used to check parameters for additional functions, but the check for these
+functions cannot be overridden):
+
+```
+func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Debug(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)
+func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Info(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)
+func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Warn(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)
+func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Error(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)
 ```
 
 ## Manually suppressing check errors
@@ -154,9 +175,13 @@ The following functions are considered logging functions:
 * `github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger.Warn(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)`
 * `github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger.Error(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)`
 
-The check verifies that the "msg" parameter is a value that is known at compile-time. Generally, this means that it is
-either a string literal (`logger.Info("Message")`), a reference to a string constant (`const msg = "Message"; logger.Info(msg)`),
-or a concatenation of either (`const msg = "Message"; logger.Info(msg + " content")`).
+The check verifies that the first parameter (the one at index 0) is a value that is known at compile-time. Generally,
+this means that it is  either a string literal (`logger.Info("Message")`), a reference to a string constant
+(`const msg = "Message"; logger.Info(msg)`), or a concatenation of either
+(`const msg = "Message"; logger.Info(msg + " content")`).
+
+The check can be configured to verify this property for additional functions (the user must specify the identifier of
+the function and the index of the parameter that should be checked as part of the analyzer configuration).
 
 The analyzer only checks the above -- in particular, it does not perform code analysis to determine usage patterns that
 semantically result in a constant output. For example, code such as `func msg() string { return "Message" }; logger.Info(msg())`,

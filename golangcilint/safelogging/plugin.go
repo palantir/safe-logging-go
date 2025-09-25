@@ -27,28 +27,12 @@ func init() {
 	register.Plugin("safelogging", New)
 }
 
-type Settings struct {
-	// TypeLogSafety is a map from fully qualified type name identifier to the log safety for that type.
-	// The safety value in this map can make a type less safe, but not more safe (for example, if a struct type is
-	// determined to be unsafe based on its fields, marking it as safe using this configuration will not make it safe).
-	//
-	// If the value is nil, uses a set of preconfigured defaults. If the value is present but empty, uses none.
-	TypeLogSafety *map[string]safelogging.LogSafetyType `json:"typeLogSafety,omitempty"`
-
-	// StructFieldLogSafety is a map from fully qualified struct field identifier to the log safety for that field. The
-	// type safety for a struct is the "least safe" of all of its types/fields (recursively) and any markings or safety
-	// configured for the struct itself.
-	//
-	// If the value is nil, uses a set of preconfigured defaults. If the value is present but empty, uses none.
-	StructFieldLogSafety *map[string]safelogging.LogSafetyType `json:"structFieldLogSafety,omitempty"`
-}
-
 type Plugin struct {
 	configJSONBytes []byte
 }
 
 func New(settings any) (register.LinterPlugin, error) {
-	s, err := register.DecodeSettings[Settings](settings)
+	s, err := register.DecodeSettings[safelogging.Config](settings)
 	if err != nil {
 		return nil, err
 	}
