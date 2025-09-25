@@ -52,12 +52,19 @@ func TestAnalyzerWithConfig(t *testing.T) {
 			"safe-logging-go/safeloggingtests/config/config_a.TestStructWithFieldSafetySetViaConfig.FieldToMarkUnsafe":   LogSafetyTypeUnsafe,
 			"safe-logging-go/safeloggingtests/config/config_a.TestStructWithFieldSafetySetViaConfig.FieldToMarkDoNotLog": LogSafetyTypeDoNotLog,
 		},
+		ConstMessageLoggingFunctions: []ConstMessageLoggingFunction{
+			{
+				Function:          "func safe-logging-go/safeloggingtests/config/config_d.CustomLoggingFunction(priority int, msg string, args ...any)",
+				MessageParamIndex: 1,
+			},
+		},
 	})
 	require.NoError(t, err)
 	err = analyzer.Analyzer().Flags.Set("json-config", string(cfgBytes))
 	require.NoError(t, err)
 	analysistest.Run(t, analysistest.TestData(), analyzer.Analyzer(),
 		"safe-logging-go/safeloggingtests/config/config_a",
+		"safe-logging-go/safeloggingtests/config/config_d",
 	)
 }
 

@@ -64,8 +64,8 @@ type FuncRefHandler func(
 	param Param,
 )
 
-func getFuncRefHandlers() map[FuncRef]FuncRefHandler {
-	return map[FuncRef]FuncRefHandler{
+func getFuncRefHandlers(compileTimeConstantArgFuncRefs map[FuncRef]int) map[FuncRef]FuncRefHandler {
+	handlers := map[FuncRef]FuncRefHandler{
 		svc1logSafeParam:    checkSingleParamThatIsSecondArgToFuncIsSafeToLog(LogSafetyTypeSafe),
 		svc1logSafeParams:   checkSingleParamThatIsFirstArgToFuncIsSafeToLog(LogSafetyTypeSafe),
 		svc1logUnsafeParam:  checkSingleParamThatIsSecondArgToFuncIsSafeToLog(LogSafetyTypeUnsafe),
@@ -85,6 +85,14 @@ func getFuncRefHandlers() map[FuncRef]FuncRefHandler {
 		svc1logWarn:  checkFirstArgIsCompileTimeConstant,
 		svc1logError: checkFirstArgIsCompileTimeConstant,
 	}
+	for k, v := range compileTimeConstantArgFuncRefs {
+		// do not allow overriding of built-in handlers
+		if _, ok := handlers[k]; ok {
+			continue
+		}
+		handlers[k] = checkArgAtIndexIsCompileTimeConstant(v)
+	}
+	return handlers
 }
 
 func checkSingleParamThatIsFirstArgToFuncIsSafeToLog(permittedSafetyLevel LogSafetyType) FuncRefHandler {
@@ -169,31 +177,40 @@ func checkParamsAtArgIdxToFuncIsSafeToLog(argIdxToSafetyLevel map[int]LogSafetyT
 	}
 }
 
-func checkFirstArgIsCompileTimeConstant(
-	_ FuncRef,
-	id *ast.Ident,
-	call *ast.CallExpr,
-	pass *analysis.Pass,
-	_ *logSafetyInfoBundle,
-	_ map[types.Type]*ast.Ident,
-	_ *CommentBasedLogSafetyTracker,
-	fileCommentRetriever filecomments.Retriever,
-	_ Param,
-) {
-	if argIsCompileTimeConstant := checkExpressionIsCompileTimeConstant(call.Args[0], id, call, pass); argIsCompileTimeConstant {
-		return
+func checkArgAtIndexIsCompileTimeConstant(idx int) FuncRefHandler {
+	return func(
+		_ FuncRef,
+		id *ast.Ident,
+		call *ast.CallExpr,
+		pass *analysis.Pass,
+		_ *logSafetyInfoBundle,
+		_ map[types.Type]*ast.Ident,
+		_ *CommentBasedLogSafetyTracker,
+		fileCommentRetriever filecomments.Retriever,
+		_ Param,
+	) {
+		// if argument index is out of range, do not report issue
+		if idx >= len(call.Args) {
+			return
+		}
+
+		if argIsCompileTimeConstant := checkExpressionIsCompileTimeConstant(call.Args[idx], id, call, pass); argIsCompileTimeConstant {
+			return
+		}
+		if nodeHasSuppressWarningsComment(id.Pos(), fileCommentRetriever) {
+			return
+		}
+		pass.Report(analysis.Diagnostic{
+			Pos: call.Pos(),
+			Message: fmt.Sprintf(
+				"%s called with unsafe argument: message must be a compile-time constant",
+				id.Name,
+			),
+		})
 	}
-	if nodeHasSuppressWarningsComment(id.Pos(), fileCommentRetriever) {
-		return
-	}
-	pass.Report(analysis.Diagnostic{
-		Pos: call.Pos(),
-		Message: fmt.Sprintf(
-			"%s called with unsafe argument: message must be a compile-time constant",
-			id.Name,
-		),
-	})
 }
+
+var checkFirstArgIsCompileTimeConstant = checkArgAtIndexIsCompileTimeConstant(0)
 
 func checkExpressionIsCompileTimeConstant(expr ast.Expr, id *ast.Ident, call *ast.CallExpr, pass *analysis.Pass) bool {
 	switch exprVal := expr.(type) {
@@ -540,7 +557,7 @@ func findLogCalls(
 	fileCommentRetriever filecomments.Retriever,
 	param Param,
 ) {
-	funcRefHandlers := getFuncRefHandlers()
+	funcRefHandlers := getFuncRefHandlers(param.constMessageLoggingFunctions)
 
 	// Return a mapping from *ast.Ident to FuncRef for all relevant functions.
 	// The calls to these functions are what will be analyzed for the check.
