@@ -54,7 +54,23 @@ func TestAnalyzerWithConfig(t *testing.T) {
 		},
 		ConstMessageLoggingFunctions: []ConstMessageLoggingFunction{
 			{
-				Function:          "func safe-logging-go/safeloggingtests/config/config_d.CustomLoggingFunction(priority int, msg string, args ...any)",
+				Function:          "safe-logging-go/safeloggingtests/config/config_d.CustomLoggingFunction",
+				MessageParamIndex: 1,
+			},
+			{
+				Function:          "safe-logging-go/safeloggingtests/config/config_d.OtherCustomLoggingFunction",
+				MessageParamIndex: 1,
+			},
+			{
+				Function:          "(safe-logging-go/safeloggingtests/config/config_d.LoggerStruct).StructReceiverLoggingFunction",
+				MessageParamIndex: 1,
+			},
+			{
+				Function:          "(*safe-logging-go/safeloggingtests/config/config_d.LoggerStruct).PointerReceiverLoggingFunction",
+				MessageParamIndex: 1,
+			},
+			{
+				Function:          "safe-logging-go/safeloggingtests/config/config_d.LoggingFunctionWithGenerics",
 				MessageParamIndex: 1,
 			},
 		},

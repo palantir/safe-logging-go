@@ -22,6 +22,7 @@ import (
 	"iter"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/palantir/safe-logging-go/safelogging/internal/filecomments"
 	"golang.org/x/tools/go/analysis"
@@ -33,23 +34,23 @@ type FuncRef string
 
 const (
 	// service.1 log param constructors: arguments must be correct safety level
-	svc1logSafeParam    FuncRef = "func github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.SafeParam(key string, value interface{}) github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param"
-	svc1logSafeParams   FuncRef = "func github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.SafeParams(safe map[string]interface{}) github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param"
-	svc1logUnsafeParam  FuncRef = "func github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.UnsafeParam(key string, value interface{}) github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param"
-	svc1logUnsafeParams FuncRef = "func github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.UnsafeParams(unsafe map[string]interface{}) github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param"
+	svc1logSafeParam    FuncRef = "github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.SafeParam"
+	svc1logSafeParams   FuncRef = "github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.SafeParams"
+	svc1logUnsafeParam  FuncRef = "github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.UnsafeParam"
+	svc1logUnsafeParams FuncRef = "github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.UnsafeParams"
 
 	// svc1log logging functions: message must be compile-time constant (params safety is covered by param construction)
-	svc1logDebug FuncRef = "func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Debug(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)"
-	svc1logInfo  FuncRef = "func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Info(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)"
-	svc1logWarn  FuncRef = "func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Warn(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)"
-	svc1logError FuncRef = "func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Error(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)"
+	svc1logDebug FuncRef = "(github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Debug"
+	svc1logInfo  FuncRef = "(github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Info"
+	svc1logWarn  FuncRef = "(github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Warn"
+	svc1logError FuncRef = "(github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Error"
 
 	// werror params constructors: arguments must be correct safety level
-	werrorSafeParam           FuncRef = "func github.com/palantir/witchcraft-go-error.SafeParam(key string, val interface{}) github.com/palantir/witchcraft-go-error.Param"
-	werrorSafeParams          FuncRef = "func github.com/palantir/witchcraft-go-error.SafeParams(vals map[string]interface{}) github.com/palantir/witchcraft-go-error.Param"
-	werrorUnsafeParam         FuncRef = "func github.com/palantir/witchcraft-go-error.UnsafeParam(key string, val interface{}) github.com/palantir/witchcraft-go-error.Param"
-	werrorUnsafeParams        FuncRef = "func github.com/palantir/witchcraft-go-error.UnsafeParams(vals map[string]interface{}) github.com/palantir/witchcraft-go-error.Param"
-	werrorSafeAndUnsafeParams FuncRef = "func github.com/palantir/witchcraft-go-error.SafeAndUnsafeParams(safe map[string]interface{}, unsafe map[string]interface{}) github.com/palantir/witchcraft-go-error.Param"
+	werrorSafeParam           FuncRef = "github.com/palantir/witchcraft-go-error.SafeParam"
+	werrorSafeParams          FuncRef = "github.com/palantir/witchcraft-go-error.SafeParams"
+	werrorUnsafeParam         FuncRef = "github.com/palantir/witchcraft-go-error.UnsafeParam"
+	werrorUnsafeParams        FuncRef = "github.com/palantir/witchcraft-go-error.UnsafeParams"
+	werrorSafeAndUnsafeParams FuncRef = "github.com/palantir/witchcraft-go-error.SafeAndUnsafeParams"
 )
 
 type FuncRefHandler func(
@@ -574,12 +575,18 @@ func findLogCalls(
 
 			// identifier for the function call: *ast.Ident if called directly as an identifier ("Foo()"),
 			// *ast.SelectorExpr if invoked on a package or receiver ("otherpkg.Foo()").
+			// May be *ast.IndexExpr if function is a generic function with type parameters ("Foo[T]()").
 			var id *ast.Ident
 			switch fun := call.Fun.(type) {
 			case *ast.Ident:
 				id = fun
 			case *ast.SelectorExpr:
 				id = fun.Sel
+			case *ast.IndexExpr:
+				xIdent, ok := fun.X.(*ast.Ident) // panic if not ident
+				if ok {
+					id = xIdent
+				}
 			}
 
 			funcRefForCall, ok := astIdentToFuncRefMap[id]
@@ -622,7 +629,7 @@ func createASTIdentToFuncRefMap(uses map[*ast.Ident]types.Object, funcRefs iter.
 			continue
 		}
 
-		currFuncRef := FuncRef(funcPtr.String())
+		currFuncRef := FuncRef(normalizeFunctionString(funcPtr.String()))
 		if len(funcRefsMap) > 0 {
 			if _, ok := funcRefsMap[currFuncRef]; !ok {
 				// if funcRefsMap is non-empty, skip any entries that don't match the signature
@@ -633,4 +640,22 @@ func createASTIdentToFuncRefMap(uses map[*ast.Ident]types.Object, funcRefs iter.
 		identToFuncRefs[id] = currFuncRef
 	}
 	return identToFuncRefs
+}
+
+func normalizeFunctionString(in string) string {
+	// remove "func " prefix
+	normalized := strings.TrimPrefix(in, "func ")
+
+	// remove generics
+	if openSquareBraceIdx := strings.Index(normalized, "["); openSquareBraceIdx != -1 {
+		normalized = normalized[:openSquareBraceIdx]
+	}
+
+	// remove parameter and return value if there is an open paren after index 0 (index 0 is OK, because that is how receivers are denoted)
+	if openParenIdx := strings.LastIndex(normalized, "("); openParenIdx > 0 {
+		normalized = normalized[:openParenIdx]
+	}
+
+	// result should be just function name
+	return normalized
 }
