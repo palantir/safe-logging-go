@@ -23,29 +23,29 @@ type Config struct {
 	// The safety value in this map can make a type less safe, but not more safe (for example, if a struct type is
 	// determined to be unsafe based on its fields, marking it as safe using this configuration will not make it safe).
 	// The values in this map are applied on top of the default.
-	TypeLogSafety *map[string]LogSafetyType `json:"typeLogSafety,omitempty" mapstructure:"type-log-safety,omitempty"`
+	TypeLogSafety *map[string]LogSafetyType `json:"type-log-safety,omitempty" mapstructure:"type-log-safety,omitempty"`
 
 	// If true, omits the default TypeLogSafety values and uses only those specified in the TypeLogSafety map.
-	TypeLogSafetyOmitDefaults bool `json:"typeLogSafetyDisableDefaults,omitempty" mapstructure:"type-log-safety-disable-defaults,omitempty"`
+	TypeLogSafetyOmitDefaults bool `json:"type-log-safety-disable-defaults,omitempty" mapstructure:"type-log-safety-disable-defaults,omitempty"`
 
 	// StructFieldLogSafety is a map from fully qualified struct field identifier to the log safety for that field. The
 	// type safety for a struct is the "least safe" of all of its types/fields (recursively) and any markings or safety
 	// configured for the struct itself.
-	StructFieldLogSafety *map[string]LogSafetyType `json:"structFieldLogSafety,omitempty" mapstructure:"struct-field-log-safety,omitempty"`
+	StructFieldLogSafety *map[string]LogSafetyType `json:"struct-field-log-safety,omitempty" mapstructure:"struct-field-log-safety,omitempty"`
 
 	// If true, omits the default StructFieldLogSafety values and uses only those specified in the StructFieldLogSafety map.
-	StructFieldLogSafetyOmitDefaults bool `json:"structFieldLogSafetyDisableDefaults,omitempty" mapstructure:"struct-field-log-safety-disable-defaults,omitempty"`
+	StructFieldLogSafetyOmitDefaults bool `json:"struct-field-log-safety-disable-defaults,omitempty" mapstructure:"struct-field-log-safety-disable-defaults,omitempty"`
 
 	// ConstMessageLoggingFunctions is a list of functions are checked to ensure that the parameter at a specified index
 	// is a constant string. Currently, the check only supports checking one parameter per function -- if the provided
 	// slice contains the same function multiple times, the last entry will take precedence. This configuration can add
 	// to the default set of functions, but cannot override them.
-	ConstMessageLoggingFunctions []ConstMessageLoggingFunction `json:"constMessageLoggingFunctions,omitempty" mapstructure:"const-message-logging-functions,omitempty"`
+	ConstMessageLoggingFunctions []ConstMessageLoggingFunction `json:"const-message-logging-functions,omitempty" mapstructure:"const-message-logging-functions,omitempty"`
 }
 
 type ConstMessageLoggingFunction struct {
 	Function          FuncRef `json:"function" mapstructure:"function"`
-	MessageParamIndex int     `json:"messageParamIndex" mapstructure:"message-param-index"`
+	MessageParamIndex int     `json:"message-param-index" mapstructure:"message-param-index"`
 }
 
 func (c *Config) ToParam() Param {
