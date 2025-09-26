@@ -111,10 +111,10 @@ compile-time constants (configuration can be used to check parameters for additi
 functions cannot be overridden):
 
 ```
-func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Debug(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)
-func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Info(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)
-func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Warn(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)
-func (github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Error(msg string, params ...github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Param)
+(github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Debug
+(github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Info
+(github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Warn
+(github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log.Logger).Error
 ```
 
 ## Manually suppressing check errors
