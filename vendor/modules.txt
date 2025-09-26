@@ -1,6 +1,10 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/go-viper/mapstructure/v2 v2.4.0
+## explicit; go 1.18
+github.com/go-viper/mapstructure/v2
+github.com/go-viper/mapstructure/v2/internal/errors
 # github.com/golangci/plugin-module-register v0.1.2
 ## explicit; go 1.23.0
 github.com/golangci/plugin-module-register/register
