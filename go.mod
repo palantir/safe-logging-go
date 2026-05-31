@@ -2,6 +2,8 @@ module github.com/palantir/safe-logging-go
 
 go 1.26.0
 
+toolchain go1.26.3
+
 require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/golangci/plugin-module-register v0.1.2
