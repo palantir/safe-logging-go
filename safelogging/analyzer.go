@@ -79,7 +79,7 @@ func NewAnalyzer() *Analyzer {
 			new(PackageTypeLogSafetyInfo),
 			new(LogSafetyInfo),
 		},
-		Run: func(pass *analysis.Pass) (interface{}, error) {
+		Run: func(pass *analysis.Pass) (any, error) {
 			return analyzer.doRun(pass)
 		},
 	}
@@ -88,7 +88,7 @@ func NewAnalyzer() *Analyzer {
 	return analyzer
 }
 
-func (a *Analyzer) doRun(pass *analysis.Pass) (interface{}, error) {
+func (a *Analyzer) doRun(pass *analysis.Pass) (any, error) {
 	param, err := a.getParam()
 	if err != nil {
 		return nil, err
