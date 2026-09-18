@@ -49,9 +49,7 @@ func computeLogSafetyInfo(
 		allTypesMapWithUnderlyingTypes[k] = v
 		allTypesMapWithUnderlyingTypes[k.Underlying()] = v
 	}
-	for k, v := range typeMaps.namedTypesMap {
-		allTypesMapWithUnderlyingTypes[k] = v
-	}
+	maps.Copy(allTypesMapWithUnderlyingTypes, typeMaps.namedTypesMap)
 
 	cachedReturnValues := make(map[types.Type]*computeLogSafetyInfoForTypeReturnType)
 
