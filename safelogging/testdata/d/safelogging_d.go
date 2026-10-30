@@ -1,4 +1,4 @@
-package d // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/d\.StructWithNamedTypeField: @DoNotLog\]\]`
+package d // want package:`TypeRepToTypeToLogSafety: \[\*types\.Alias: \[safe-logging-go/safeloggingtests/d\.AnnotatedTypeAlias: @Unsafe, safe-logging-go/safeloggingtests/d\.TestStructAliasImported: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructAliasImportedPointer: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructAliasLocal: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructAliasLocalPointer: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructNamedTypeLocal: @DoNotLog\], \*types\.Named: \[safe-logging-go/safeloggingtests/d\.AnnotatedNamedType: @Unsafe, safe-logging-go/safeloggingtests/d\.StructWithNamedTypeField: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructNamedTypeImported: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructNamedTypeImportedPointer: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructNamedTypeLocalPointer: @DoNotLog\]\]`
 
 import (
 	"safe-logging-go/safeloggingtests/a"
@@ -43,7 +43,7 @@ func ParamTests() {
 	// no warning: ok to log safe field using SafeParam
 	svc1log.SafeParam("testParam", testStructAliasImportedVar.SafeField)
 	svc1log.SafeParam("testParam", testStructAliasImportedVar.UnsafeField) // want `^SafeParam called with unsafe argument: argument is @Unsafe \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.UnsafeField"\)$`
-	svc1log.SafeParam("testParam", testStructAliasImportedVar)             // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/a\.TestStruct", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
+	svc1log.SafeParam("testParam", testStructAliasImportedVar)             // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/d\.TestStructAliasImported", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
 
 	var testStructNamedTypeImportedPointerVar TestStructNamedTypeImportedPointer
 	testStructNamedTypeImportedPointerVar = &a.TestStruct{}
@@ -57,7 +57,7 @@ func ParamTests() {
 	// no warning: ok to log safe field using SafeParam
 	svc1log.SafeParam("testParam", testStructAliasImportedPointerVar.SafeField)
 	svc1log.SafeParam("testParam", testStructAliasImportedPointerVar.UnsafeField) // want `^SafeParam called with unsafe argument: argument is @Unsafe \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.UnsafeField"\)$`
-	svc1log.SafeParam("testParam", testStructAliasImportedPointerVar)             // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/a\.TestStruct", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
+	svc1log.SafeParam("testParam", testStructAliasImportedPointerVar)             // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/d\.TestStructAliasImportedPointer", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
 
 	var testStructWithNamedTypeFieldVar StructWithNamedTypeField
 	svc1log.SafeParam("testParam", testStructWithNamedTypeFieldVar.NamedTypeField) // want `^SafeParam called with unsafe argument: argument is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
@@ -65,11 +65,11 @@ func ParamTests() {
 
 	var testStructNamedTypeLocalVar TestStructNamedTypeLocal
 	svc1log.SafeParam("testParam", testStructNamedTypeLocalVar.NamedTypeField) // want `^SafeParam called with unsafe argument: argument is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
-	svc1log.SafeParam("testParam", testStructNamedTypeLocalVar)                // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/d\.StructWithNamedTypeField", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
+	svc1log.SafeParam("testParam", testStructNamedTypeLocalVar)                // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/d\.TestStructNamedTypeLocal", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
 
 	var testStructAliasLocalVar TestStructAliasLocal
 	svc1log.SafeParam("testParam", testStructAliasLocalVar.NamedTypeField) // want `^SafeParam called with unsafe argument: argument is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
-	svc1log.SafeParam("testParam", testStructAliasLocalVar)                // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/d\.StructWithNamedTypeField", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
+	svc1log.SafeParam("testParam", testStructAliasLocalVar)                // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/d\.TestStructAliasLocal", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
 
 	var testStructNamedTypeLocalPointerVar TestStructNamedTypeLocalPointer
 	testStructNamedTypeLocalPointerVar = &StructWithNamedTypeField{}
@@ -86,5 +86,5 @@ func ParamTests() {
 	testStructAliasLocalPointerVar = &StructWithNamedTypeField{}
 	// no warning: ok to log safe field using SafeParam
 	svc1log.SafeParam("testParam", testStructAliasLocalPointerVar.NamedTypeField) // want `^SafeParam called with unsafe argument: argument is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
-	svc1log.SafeParam("testParam", testStructAliasLocalPointerVar)                // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/d\.StructWithNamedTypeField", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
+	svc1log.SafeParam("testParam", testStructAliasLocalPointerVar)                // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/d\.TestStructAliasLocalPointer", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
 }

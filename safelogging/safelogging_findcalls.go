@@ -59,7 +59,7 @@ type FuncRefHandler func(
 	call *ast.CallExpr,
 	pass *analysis.Pass,
 	logSafetyInfos *logSafetyInfoBundle,
-	allTypesMapWithUnderlyingTypes map[types.Type]*ast.Ident,
+	typeDeclarations map[types.Type]*ast.Ident,
 	commentLogSafetyTracker *CommentBasedLogSafetyTracker,
 	fileCommentRetriever filecomments.Retriever,
 	param Param,
@@ -117,7 +117,7 @@ func checkParamsAtArgIdxToFuncIsSafeToLog(argIdxToSafetyLevel map[int]LogSafetyT
 		call *ast.CallExpr,
 		pass *analysis.Pass,
 		logSafetyInfos *logSafetyInfoBundle,
-		allTypesMapWithUnderlyingTypes map[types.Type]*ast.Ident,
+		typeDeclarations map[types.Type]*ast.Ident,
 		commentLogSafetyTracker *CommentBasedLogSafetyTracker,
 		fileCommentRetriever filecomments.Retriever,
 		param Param,
@@ -163,7 +163,7 @@ func checkParamsAtArgIdxToFuncIsSafeToLog(argIdxToSafetyLevel map[int]LogSafetyT
 			} else {
 				paramArgExpr = call.Args[argIdx]
 			}
-			issue := checkExprSafetyLevelViolationInFunctionCall(paramArgExpr, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param)
+			issue := checkExprSafetyLevelViolationInFunctionCall(paramArgExpr, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param)
 			if issue == nil {
 				continue
 			}
@@ -268,7 +268,7 @@ func checkExprSafetyLevelViolationInFunctionCall(
 	pass *analysis.Pass,
 	permittedSafetyLevel LogSafetyType,
 	logSafetyInfos *logSafetyInfoBundle,
-	allTypesMapWithUnderlyingTypes map[types.Type]*ast.Ident,
+	typeDeclarations map[types.Type]*ast.Ident,
 	commentLogSafetyTracker *CommentBasedLogSafetyTracker,
 	fileCommentRetriever filecomments.Retriever,
 	param Param,
@@ -339,13 +339,13 @@ func checkExprSafetyLevelViolationInFunctionCall(
 		}
 	case *ast.CompositeLit:
 		// check safety of declared type
-		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Type, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
+		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Type, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
 			return issue
 		}
 
 		// check safety of types of each element
 		for _, elt := range exprVal.Elts {
-			if issue := checkExprSafetyLevelViolationInFunctionCall(elt, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
+			if issue := checkExprSafetyLevelViolationInFunctionCall(elt, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
 				return issue
 			}
 		}
@@ -362,7 +362,7 @@ func checkExprSafetyLevelViolationInFunctionCall(
 			pass,
 			logSafetyInfos,
 			logSafetyInfos,
-			allTypesMapWithUnderlyingTypes,
+			typeDeclarations,
 			nil,
 			make(map[types.Type]*computeLogSafetyInfoForTypeReturnType),
 			commentLogSafetyTracker,
@@ -381,39 +381,39 @@ func checkExprSafetyLevelViolationInFunctionCall(
 		}
 	case *ast.KeyValueExpr:
 		// check key and value
-		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Key, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
+		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Key, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
 			return issue
 		}
-		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Value, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
+		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Value, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
 			return issue
 		}
 	case *ast.ArrayType:
 		// check safety of array type
-		return checkExprSafetyLevelViolationInFunctionCall(exprVal.Elt, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param)
+		return checkExprSafetyLevelViolationInFunctionCall(exprVal.Elt, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param)
 	case *ast.SliceExpr:
 		// check safety of slice type
-		return checkExprSafetyLevelViolationInFunctionCall(exprVal.X, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param)
+		return checkExprSafetyLevelViolationInFunctionCall(exprVal.X, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param)
 	case *ast.MapType:
 		// check safety of key and value types
-		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Key, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
+		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Key, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
 			return issue
 		}
-		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Value, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
+		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Value, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
 			return issue
 		}
 	case *ast.StarExpr:
 		// check safety of expression being dereferenced
-		return checkExprSafetyLevelViolationInFunctionCall(exprVal.X, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param)
+		return checkExprSafetyLevelViolationInFunctionCall(exprVal.X, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param)
 	case *ast.UnaryExpr:
 		// check safety of expression being operated on
-		return checkExprSafetyLevelViolationInFunctionCall(exprVal.X, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param)
+		return checkExprSafetyLevelViolationInFunctionCall(exprVal.X, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param)
 	case *ast.BinaryExpr:
 		// check safety for LHS of expression
-		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.X, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
+		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.X, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
 			return issue
 		}
 		// check safety for RHS of expression
-		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Y, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
+		if issue := checkExprSafetyLevelViolationInFunctionCall(exprVal.Y, id, call, argIdx, pass, permittedSafetyLevel, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param); issue != nil {
 			return issue
 		}
 	case *ast.SelectorExpr:
@@ -501,13 +501,15 @@ func checkExprSafetyLevelViolationInFunctionCall(
 
 func getLogSafetyForType(targetType types.Type, logSafetyInfos *logSafetyInfoBundle, param Param) LogSafetyInfo {
 	var leastSafeLogSafetyInfo LogSafetyInfo
+	for _, baseType := range getAllBaseTypes(targetType) {
+		if safetyValue, ok := logSafetyInfos.typeLogSafety[baseType]; ok && safetyValue.LogSafety > leastSafeLogSafetyInfo.LogSafety {
+			leastSafeLogSafetyInfo = safetyValue
+		}
 
-	// look up safety value based on type information
-	if gotSafetyValue, ok := logSafetyInfos.typeLogSafety[targetType]; ok {
-		leastSafeLogSafetyInfo = gotSafetyValue
-	}
-
-	setTypeSafetyFromBuiltinMapFn := func(namedType *types.Named) {
+		namedType, ok := baseType.(*types.Named)
+		if !ok {
+			continue
+		}
 		identifier := namedType.Obj().Name()
 		if pkg := namedType.Obj().Pkg(); pkg != nil {
 			identifier = pkg.Path() + "." + identifier
@@ -520,40 +522,13 @@ func getLogSafetyForType(targetType types.Type, logSafetyInfos *logSafetyInfoBun
 			}
 		}
 	}
-
-	if namedType, ok := targetType.(*types.Named); ok {
-		setTypeSafetyFromBuiltinMapFn(namedType)
-	}
-
-	// also get type safety information of all base types of type
-	baseTypes := getAllBaseTypes(targetType)
-	// a given semantic named type may have multiple entries in the typeLogSafetyMap: one for the actual named type, and
-	// one for its underlying type. In such a case, prefer the named type, since its failure message/output will be
-	// more informative.
-	assignedFromNamedType := false
-	for _, baseType := range baseTypes {
-		if safetyValue, ok := logSafetyInfos.typeLogSafety[baseType]; ok && safetyValue.LogSafety >= leastSafeLogSafetyInfo.LogSafety {
-			if assignedFromNamedType {
-				continue
-			}
-			if _, currTypeIsNamedType := baseType.(*types.Named); currTypeIsNamedType {
-				assignedFromNamedType = true
-			}
-			leastSafeLogSafetyInfo = safetyValue
-		}
-
-		if namedType, ok := baseType.(*types.Named); ok {
-			setTypeSafetyFromBuiltinMapFn(namedType)
-		}
-	}
-
 	return leastSafeLogSafetyInfo
 }
 
 func findLogCalls(
 	pass *analysis.Pass,
 	logSafetyInfos *logSafetyInfoBundle,
-	allTypesMapWithUnderlyingTypes map[types.Type]*ast.Ident,
+	typeDeclarations map[types.Type]*ast.Ident,
 	commentLogSafetyTracker *CommentBasedLogSafetyTracker,
 	fileCommentRetriever filecomments.Retriever,
 	param Param,
@@ -598,7 +573,7 @@ func findLogCalls(
 
 			// get the handler for this function reference and perform the check operation
 			funcRefHandler := funcRefHandlers[funcRefForCall]
-			funcRefHandler(funcRefForCall, id, call, pass, logSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param)
+			funcRefHandler(funcRefForCall, id, call, pass, logSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param)
 
 			return true
 		})

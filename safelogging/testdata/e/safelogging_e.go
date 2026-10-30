@@ -1,4 +1,4 @@
-package e // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/e\.TestStructOuter: @Unsafe, safe-logging-go/safeloggingtests/e\.TestStructTaggedWithComment: @Unsafe\]\]`
+package e // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/e\.TestInterfaceWithComment: @Unsafe, safe-logging-go/safeloggingtests/e\.TestNamedTypeTestStructOuter: @Unsafe, safe-logging-go/safeloggingtests/e\.TestNamedTypeTestStructOuterPointer: @Unsafe, safe-logging-go/safeloggingtests/e\.TestNamedTypeTestStructTaggedWithComment: @Unsafe, safe-logging-go/safeloggingtests/e\.TestStructOuter: @Unsafe, safe-logging-go/safeloggingtests/e\.TestStructTaggedWithComment: @Unsafe\]\]`
 
 import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"

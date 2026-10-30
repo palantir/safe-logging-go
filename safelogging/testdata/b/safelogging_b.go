@@ -2,6 +2,7 @@ package b // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-lo
 
 import (
 	"safe-logging-go/safeloggingtests/a"
+	"safe-logging-go/safeloggingtests/f"
 
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
@@ -46,4 +47,18 @@ func ParamTests() {
 	testStruct5 := TestStructWithInheritedLevelFromEmbedded{}
 	svc1log.SafeParam("testParam", testStruct5)            // want `^SafeParam called with unsafe argument: argument references type "safe-logging-go/safeloggingtests/b\.TestStructWithInheritedLevelFromEmbedded", which is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
 	svc1log.SafeParam("testParam", testStruct5.TestStruct) // want `^SafeParam called with unsafe argument: argument is @DoNotLog \(reason: tag on struct field "safe-logging-go/safeloggingtests/a\.TestStruct\.DoNotLogField"\)$`
+}
+
+func NamedTypeParamTests(password f.Password, ordinary string) {
+	svc1log.SafeParam("password", password) // want `SafeParam called with unsafe argument: .*f\.Password.*@DoNotLog`
+	svc1log.SafeParam("ordinary", ordinary)
+}
+
+type localSecret f.Secret
+type inheritedSecret localSecret
+
+func NamedStructParamTests(public f.Public, secret f.Secret, inherited inheritedSecret) {
+	svc1log.SafeParam("public", public)
+	svc1log.SafeParam("secret", secret)       // want `SafeParam called with unsafe argument: .*f\.Secret.*@DoNotLog`
+	svc1log.SafeParam("inherited", inherited) // want `SafeParam called with unsafe argument: .*inheritedSecret.*@DoNotLog`
 }

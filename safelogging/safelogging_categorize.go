@@ -43,13 +43,8 @@ func computeLogSafetyInfo(
 		objectLogSafety: make(map[types.Object]LogSafetyInfo),
 	}
 
-	// a copy of typeInfoMaps.structTypesMap where every key is reinserted as its underlying type with the same value
-	allTypesMapWithUnderlyingTypes := make(map[types.Type]*ast.Ident)
-	for k, v := range typeMaps.structTypesMap {
-		allTypesMapWithUnderlyingTypes[k] = v
-		allTypesMapWithUnderlyingTypes[k.Underlying()] = v
-	}
-	maps.Copy(allTypesMapWithUnderlyingTypes, typeMaps.namedTypesMap)
+	typeDeclarations := maps.Clone(typeMaps.structTypesMap)
+	maps.Copy(typeDeclarations, typeMaps.namedTypesMap)
 
 	cachedReturnValues := make(map[types.Type]*computeLogSafetyInfoForTypeReturnType)
 
@@ -62,7 +57,7 @@ func computeLogSafetyInfo(
 			pass,
 			logSafetyInfoForPkg,
 			dependentPkgLogSafetyInfos,
-			allTypesMapWithUnderlyingTypes,
+			typeDeclarations,
 			nil,
 			cachedReturnValues,
 			commentLogSafetyTracker,
@@ -78,8 +73,6 @@ func computeLogSafetyInfo(
 		logSafetyInfoForPkg.typeLogSafety[structType] = *typeLogSafetyInfo
 		// record that this type is a primary type
 		logSafetyInfoForPkg.primaryTypes[structType] = struct{}{}
-		// record type safety information for underlying type as well as named type
-		logSafetyInfoForPkg.typeLogSafety[structType.Underlying()] = *typeLogSafetyInfo
 		maps.Copy(logSafetyInfoForPkg.objectLogSafety, typeFieldsLogSafetyInfo)
 	}
 
@@ -92,7 +85,7 @@ func computeLogSafetyInfo(
 			pass,
 			logSafetyInfoForPkg,
 			dependentPkgLogSafetyInfos,
-			allTypesMapWithUnderlyingTypes,
+			typeDeclarations,
 			nil,
 			cachedReturnValues,
 			commentLogSafetyTracker,
@@ -106,12 +99,7 @@ func computeLogSafetyInfo(
 			panic(fmt.Sprintf("failed to compute log safety info for type %v\n", anonStructType))
 		}
 
-		underlyingType := anonStructType.Underlying()
-		// if underlying type already has a log safety populated for it, do not update, as the information from the
-		// non-anonymous struct is likely more useful
-		if _, ok := logSafetyInfoForPkg.typeLogSafety[underlyingType]; !ok {
-			logSafetyInfoForPkg.typeLogSafety[underlyingType] = *anonStructLogSafetyValue
-		}
+		logSafetyInfoForPkg.typeLogSafety[anonStructType] = *anonStructLogSafetyValue
 	}
 
 	// iterate over all named type definitions and compute log safety for type
@@ -123,7 +111,7 @@ func computeLogSafetyInfo(
 			pass,
 			logSafetyInfoForPkg,
 			dependentPkgLogSafetyInfos,
-			allTypesMapWithUnderlyingTypes,
+			typeDeclarations,
 			nil,
 			cachedReturnValues,
 			commentLogSafetyTracker,
@@ -137,6 +125,7 @@ func computeLogSafetyInfo(
 			panic(fmt.Sprintf("failed to compute log safety info for type %v", namedType))
 		}
 		logSafetyInfoForPkg.typeLogSafety[namedType] = *typeLogSafetyInfo
+		logSafetyInfoForPkg.primaryTypes[namedType] = struct{}{}
 	}
 
 	// iterate over all function definitions and compute log safety for functions
@@ -155,7 +144,7 @@ func computeLogSafetyInfo(
 		}
 	}
 
-	return logSafetyInfoForPkg, allTypesMapWithUnderlyingTypes, nil
+	return logSafetyInfoForPkg, typeDeclarations, nil
 }
 
 type typeInfoMaps struct {
@@ -203,6 +192,11 @@ func collectTypes(typeDefs map[*ast.Ident]types.Object, typesMap map[ast.Expr]ty
 				typeMapsVar.anonStructTypesMap[typeStruct] = astStructType
 			}
 		}
+	}
+
+	// Struct literals in named declarations are analyzed with their declaration.
+	for structType := range typeMapsVar.structTypesMap {
+		delete(typeMapsVar.anonStructTypesMap, structType.Underlying().(*types.Struct))
 	}
 
 	return typeMapsVar
@@ -274,7 +268,7 @@ func computeLogSafetyInfoForType(
 
 	// if type was already processed, return
 	for _, typeInPath := range typePathToCurrentType {
-		if typeOrUnderlyingTypeMatches(targetType, typeInPath) {
+		if targetType == typeInPath {
 			// indicates that there was a cycle
 			return nil, nil, true
 		}
@@ -337,11 +331,10 @@ func computeLogSafetyInfoForType(
 		// get log safety value specified in comment (if no comment, will be LogSafetyTypeUnmarked)
 		logSafetyFromComment, commentPos := commentLogSafetyTracker.LogSafetyForIdentAtPos(astType.Pos())
 
-		// type is *not* a struct declaration: it is most likely a name or alias type.
-		// Compute the log safety based on the type (the computeTypeLogSafetyInfo resolves the typeDefObject.Type() into
-		// its base types).
+		// Inherit safety from the declaration's right-hand side, e.g. Secret in
+		// "type Local Secret", without assigning Local's annotation back to Secret.
 		logSafetyInfoFromType, cyclicFromType := computeTypeLogSafetyInfo(
-			typeDefObject.Type(),
+			pass.TypesInfo.TypeOf(astType),
 			pass,
 			currPgLogSafetyInfos,
 			dependentPkgLogSafetyInfos,
@@ -372,12 +365,6 @@ func computeLogSafetyInfoForType(
 			LogSafety:  overallLogSafety,
 		}, nil, false
 	}
-}
-
-func typeOrUnderlyingTypeMatches(t1, t2 types.Type) bool {
-	t1Underlying := t1.Underlying()
-	t2Underlying := t2.Underlying()
-	return t1 == t2 || t1Underlying == t2 || t1 == t2Underlying || t1Underlying == t2Underlying
 }
 
 func computeStructLogSafetyInfo(
@@ -697,8 +684,7 @@ func unwrapASTExpr(expr ast.Expr) ast.Expr {
 }
 
 func getAllBaseTypes(t types.Type) []types.Type {
-	allBaseTypes := getBaseTypes(t, true)
-	allBaseTypes = append(allBaseTypes, getBaseTypes(t, false)...)
+	allBaseTypes := getBaseTypes(t)
 
 	seen := make(map[types.Type]bool)
 	var returnBaseTypes []types.Type
@@ -712,35 +698,23 @@ func getAllBaseTypes(t types.Type) []types.Type {
 	return returnBaseTypes
 }
 
-// getBaseTypes returns all component types of the given types.Type. If the provided type has an underlying type,
-// returns results for both the provided type and its underlying type.
-//
-// For example, for "type NamedKey string; type NamedValue int" and a type "map[NamedKey]NamedValue", calling this
-// function with "convertToUnderlying=true" would return "(string, int)", while calling it with a value of "false" would
-// return "(MyNamedType, MyNamedValue)".
-//
-// Conceptually, returns the concrete types of the values that could be logged by providing an instance of the given
-// type. As such, for types like function signatures or channels, will return nil.
-func getBaseTypes(t types.Type, getUnderlying bool) []types.Type {
-	// convert type to underlying type
-	if getUnderlying {
-		t = t.Underlying()
-	}
-
+// getBaseTypes unwraps pointers, containers, and aliases while preserving named
+// types. A named type's safety is computed from its declaration, not its underlying type.
+func getBaseTypes(t types.Type) []types.Type {
 	switch typ := t.(type) {
 	case *types.Named, *types.Basic, *types.Struct:
 		return []types.Type{typ}
+	case *types.Alias:
+		return append([]types.Type{typ}, getBaseTypes(typ.Rhs())...)
 	case *types.Pointer:
-		return getBaseTypes(typ.Elem(), getUnderlying)
+		return getBaseTypes(typ.Elem())
 	case *types.Array:
-		return getBaseTypes(typ.Elem(), getUnderlying)
+		return getBaseTypes(typ.Elem())
 	case *types.Slice:
-		return getBaseTypes(typ.Elem(), getUnderlying)
+		return getBaseTypes(typ.Elem())
 	case *types.Map:
-		return append(getBaseTypes(typ.Key(), getUnderlying), getBaseTypes(typ.Elem(), getUnderlying)...)
-	case *types.Signature, *types.Chan:
-		// return nil because fields of these types do not contain any actual data
-		return nil
+		return append(getBaseTypes(typ.Key()), getBaseTypes(typ.Elem())...)
 	}
+	// Function signatures and channels do not expose their contents when logged.
 	return nil
 }

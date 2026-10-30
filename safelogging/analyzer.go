@@ -132,7 +132,7 @@ func (a *Analyzer) doRun(pass *analysis.Pass) (any, error) {
 	fileCommentRetriever := filecomments.NewRetriever(safeLoggingCommentPrefix, pass.Fset, pass.Files)
 	commentLogSafetyTracker := NewCommentBasedLogSafetyTracker(pass.TypesInfo.Defs, pass.Fset, pass.Files)
 
-	logSafetyInfoForPkg, allTypesMapWithUnderlyingTypes, err := computeLogSafetyInfo(pass, allLogSafetyInfos, commentLogSafetyTracker, param)
+	logSafetyInfoForPkg, typeDeclarations, err := computeLogSafetyInfo(pass, allLogSafetyInfos, commentLogSafetyTracker, param)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (a *Analyzer) doRun(pass *analysis.Pass) (any, error) {
 
 	allLogSafetyInfos.addAllFromBundle(logSafetyInfoForPkg)
 
-	findLogCalls(pass, allLogSafetyInfos, allTypesMapWithUnderlyingTypes, commentLogSafetyTracker, fileCommentRetriever, param)
+	findLogCalls(pass, allLogSafetyInfos, typeDeclarations, commentLogSafetyTracker, fileCommentRetriever, param)
 
 	return nil, nil
 }
@@ -196,8 +196,6 @@ func addAllLogSafetyInfos(
 
 			// add log safety info for type
 			allLogSafetyInfos.typeLogSafety[currType] = logSafetyInfo
-			// add log safety info for underlying types as well
-			allLogSafetyInfos.typeLogSafety[currType.Underlying()] = logSafetyInfo
 
 			// if all types have been found, break
 			if len(typeLogSafetyInfoFromFacts) == 0 {
