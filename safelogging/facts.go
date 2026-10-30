@@ -113,6 +113,18 @@ type PackageTypeLogSafetyInfo struct {
 
 func (t *PackageTypeLogSafetyInfo) AFact() {}
 
+// GobEncode uses JSON to ensure deterministic encoding of nested maps.
+// Note that this depends on the behavior of json.Marshal that ensures that maps are marshaled with entries ordered in a
+// deterministic manner: the encoding/json/v2 package does not have this behavior, so if the implementation is switched
+// then further work needs to be done to ensure deterministic order.
+func (t *PackageTypeLogSafetyInfo) GobEncode() ([]byte, error) {
+	return json.Marshal(t)
+}
+
+func (t *PackageTypeLogSafetyInfo) GobDecode(data []byte) error {
+	return json.Unmarshal(data, t)
+}
+
 func (t *PackageTypeLogSafetyInfo) String() string {
 	builder := &strings.Builder{}
 	writeMapVals(builder, "TypeRepToTypeToLogSafety", t.TypeRepToTypeToLogSafety, func(k string, v map[string]LogSafetyInfo) string {
