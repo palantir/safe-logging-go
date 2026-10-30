@@ -1,4 +1,4 @@
-package f // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/f\.MyStruct: @DoNotLog, safe-logging-go/safeloggingtests/f\.Password: @DoNotLog\]\]`
+package f // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/f\.MyStruct: @DoNotLog, safe-logging-go/safeloggingtests/f\.Password: @DoNotLog, safe-logging-go/safeloggingtests/f\.Secret: @DoNotLog\]\]`
 
 import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
@@ -70,3 +70,9 @@ func ParamTests() {
 	anyVar = Password("password")
 	svc1log.SafeParam("testParam", anyVar)
 }
+
+type Public struct {
+	Text string
+}
+
+type Secret Public // safelogging:@DoNotLog

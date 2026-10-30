@@ -53,3 +53,12 @@ func NamedTypeParamTests(password f.Password, ordinary string) {
 	svc1log.SafeParam("password", password) // want `SafeParam called with unsafe argument: .*f\.Password.*@DoNotLog`
 	svc1log.SafeParam("ordinary", ordinary)
 }
+
+type localSecret f.Secret
+type inheritedSecret localSecret
+
+func NamedStructParamTests(public f.Public, secret f.Secret, inherited inheritedSecret) {
+	svc1log.SafeParam("public", public)
+	svc1log.SafeParam("secret", secret)       // want `SafeParam called with unsafe argument: .*f\.Secret.*@DoNotLog`
+	svc1log.SafeParam("inherited", inherited) // want `SafeParam called with unsafe argument: .*inheritedSecret.*@DoNotLog`
+}
