@@ -1,4 +1,4 @@
-package d // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/d\.StructWithNamedTypeField: @DoNotLog\]\]`
+package d // want package:`TypeRepToTypeToLogSafety: \[\*types\.Alias: \[safe-logging-go/safeloggingtests/d\.AnnotatedTypeAlias: @Unsafe, safe-logging-go/safeloggingtests/d\.TestStructAliasImported: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructAliasImportedPointer: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructAliasLocal: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructAliasLocalPointer: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructNamedTypeLocal: @DoNotLog\], \*types\.Named: \[safe-logging-go/safeloggingtests/d\.AnnotatedNamedType: @Unsafe, safe-logging-go/safeloggingtests/d\.StructWithNamedTypeField: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructNamedTypeImported: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructNamedTypeImportedPointer: @DoNotLog, safe-logging-go/safeloggingtests/d\.TestStructNamedTypeLocalPointer: @DoNotLog\]\]`
 
 import (
 	"safe-logging-go/safeloggingtests/a"

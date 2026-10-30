@@ -125,7 +125,7 @@ func (t *PackageTypeLogSafetyInfo) String() string {
 
 type logSafetyInfoBundle struct {
 	// map from types.Type to information about the log safety for that type.
-	// Contains all primary types and their underlying types.
+	// Contains primary types and underlying struct types.
 	typeLogSafety map[types.Type]LogSafetyInfo
 
 	// set that contains all primary types. This set is a subset of the key set of typeLogSafety, and contains only the

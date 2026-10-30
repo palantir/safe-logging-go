@@ -1,4 +1,4 @@
-package f // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/f\.MyStruct: @DoNotLog\]\]`
+package f // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/f\.MyStruct: @DoNotLog, safe-logging-go/safeloggingtests/f\.Password: @DoNotLog\]\]`
 
 import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"

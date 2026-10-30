@@ -1,4 +1,4 @@
-package j
+package j // want package:`TypeRepToTypeToLogSafety: \[\*types\.Named: \[safe-logging-go/safeloggingtests/j\.Password: @DoNotLog\]\]`
 
 import (
 	werror "github.com/palantir/witchcraft-go-error"

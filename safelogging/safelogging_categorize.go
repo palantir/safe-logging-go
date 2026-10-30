@@ -137,6 +137,7 @@ func computeLogSafetyInfo(
 			panic(fmt.Sprintf("failed to compute log safety info for type %v", namedType))
 		}
 		logSafetyInfoForPkg.typeLogSafety[namedType] = *typeLogSafetyInfo
+		logSafetyInfoForPkg.primaryTypes[namedType] = struct{}{}
 	}
 
 	// iterate over all function definitions and compute log safety for functions
